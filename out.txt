@@ -1,0 +1,13 @@
+TOKEN: int
+TOKEN: int
+TOKEN: int
+TOKEN: int
+TOKEN: input
+TOKEN: if
+TOKEN: iff
+TOKEN: faca
+STRING: *
+AND: &
+TOKEN: i
+NUMBER: 14
+LPAREN: (
