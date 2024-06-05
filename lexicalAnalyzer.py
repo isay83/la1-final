@@ -6,37 +6,42 @@ class Lexer:
         self.accepting_states = self.build_accepting_states()
 
     def build_transition_table(self):
-        transition_table = [[50] * len(self.alphabet) for _ in range(35)]
+        transition_table = [[50] * len(self.alphabet) for _ in range(500)]
 
         # Definir transiciones específicas basadas en las reglas de tokens
-        transition_table[0][self.alphabet.index('i')] = 1  # para "if" o "int"
-        transition_table[0][self.alphabet.index('*')] = 4  # para "*"
-        transition_table[0][self.alphabet.index('+')] = 5  # para "+"
-        transition_table[0][self.alphabet.index('>')] = 6  # para ">"
-        transition_table[0][self.alphabet.index('&')] = 7  # para "&&"
-        transition_table[0][self.alphabet.index('(')] = 8  # para "("
-        transition_table[0][self.alphabet.index(')')] = 9  # para ")"
-        transition_table[0][self.alphabet.index('{')] = 10 # para "{"
-        transition_table[0][self.alphabet.index(']')] = 11 # para "]"
-        transition_table[0][self.alphabet.index(';')] = 12 # para ";"
+        transition_table[0][self.alphabet.index('i')] = 10  # para "if", "int" o "input"
+        transition_table[10][self.alphabet.index('n')] = 11  # para "int" o "input"
+        transition_table[11][self.alphabet.index('t')] = 1  # para "int"
+        transition_table[10][self.alphabet.index('f')] = 1  # "if"
+        transition_table[11][self.alphabet.index('p')] = 12  # "input"
+        transition_table[12][self.alphabet.index('u')] = 13  # "input"
+        transition_table[13][self.alphabet.index('t')] = 1  # "input"
 
+        transition_table[0][self.alphabet.index('*')] = 1  # para "*"
+        transition_table[0][self.alphabet.index('+')] = 1  # para "+"
+        transition_table[0][self.alphabet.index('>')] = 1  # para ">"
+        transition_table[0][self.alphabet.index('&')] = 14  # para "&&"
+        transition_table[14][self.alphabet.index('&')] = 1  # para "&&"
+        transition_table[0][self.alphabet.index('(')] = 1  # para "("
+        transition_table[0][self.alphabet.index(')')] = 1  # para ")"
+        transition_table[0][self.alphabet.index('{')] = 1  # para "{"
+        transition_table[0][self.alphabet.index(']')] = 1  # para "]"
+        transition_table[0][self.alphabet.index(';')] = 1  # para ";"
+        
         for i in range(10):  # dígitos 0-9
-            transition_table[0][self.alphabet.index(str(i))] = 13
-            transition_table[13][self.alphabet.index(str(i))] = 13
-        for letter in 'abcdefghijklmnopqrstuvwxyz':
-            if letter in self.alphabet:
-                transition_table[0][self.alphabet.index(letter)] = 14
-                transition_table[14][self.alphabet.index(letter)] = 14
-
-        transition_table[1][self.alphabet.index('f')] = 15  # "if"
-        transition_table[1][self.alphabet.index('n')] = 16  # "int"
-        transition_table[16][self.alphabet.index('t')] = 17 # "int"
-
-        # Manejo de números decimales
-        transition_table[13][self.alphabet.index('.')] = 18
+            transition_table[0][self.alphabet.index(str(i))] = 3
+            transition_table[3][self.alphabet.index(str(i))] = 3
+        transition_table[3][self.alphabet.index('.')] = 4
         for i in range(10):
-            transition_table[18][self.alphabet.index(str(i))] = 19
-            transition_table[19][self.alphabet.index(str(i))] = 19
+            transition_table[4][self.alphabet.index(str(i))] = 3
+            transition_table[3][self.alphabet.index(str(i))] = 3
+        transition_table[3][self.alphabet.index('.')] = 4
+
+        for letter in 'aifnputz_':
+            transition_table[0][self.alphabet.index(letter)] = 2
+            transition_table[2][self.alphabet.index(letter)] = 2
+            for digit in '0123456789':
+                transition_table[2][self.alphabet.index(digit)] = 2
 
         return transition_table
 
@@ -44,21 +49,20 @@ class Lexer:
         return {
             1: 'TOKEN',
             2: 'IDENTIFIER',
-            3: 'CONSTANT',
-            4: 'STRING',
-            5: 'ADD',
-            6: 'GT',
-            7: 'AND',
-            8: 'LPAREN',
-            9: 'RPAREN',
-            10: 'LBRACE',
-            11: 'RBRACKET',
-            12: 'SEMI',
-            13: 'NUMBER',
-            14: 'TOKEN',
-            15: 'IF',
-            17: 'INT',
-            19: 'NUMBER'
+            3: 'NUMERICAL CONSTANT',
+            4: 'INVALID STRING',
+            5: 'INVALID NUMERIC STRING',
+            50: 'UNEXPECTED CHARACTER',
+            10: 'n',
+            11: 't',
+            12: '_',
+            13: '',
+            14: 'n',
+            15: 't',
+            16: '_',
+            17: '',
+            18: '',
+            19: ''
         }
 
     def char_type(self, char):
@@ -75,10 +79,19 @@ class Lexer:
         for char in text:
             if char.isspace():
                 if state != 0 and current_token:
-                    if state in self.accepting_states:
-                        tokens.append((self.accepting_states[state], current_token))
-                    else:
-                        tokens.append(('ERROR', current_token))
+                    if state == 1:
+                        tokens.append(('TOKEN', current_token))
+                    elif state == 2:
+                        if current_token in self.tokens:
+                            tokens.append(('TOKEN', current_token))
+                        else:
+                            tokens.append(('IDENTIFIER', current_token))
+                    elif state == 3:
+                        tokens.append(('NUMERICAL CONSTANT', current_token))
+                    elif state == 4:
+                        tokens.append(('INVALID NUMERIC STRING', current_token))
+                    elif state == 50:
+                        tokens.append(('UNEXPECTED CHARACTER', current_token))
                     current_token = ''
                     state = 0
                 continue
@@ -86,17 +99,23 @@ class Lexer:
             ctype = self.char_type(char)
             new_state = self.transition_table[state][ctype]
 
-            if new_state == 50:  # Estado de error
-                raise ValueError(f"Unexpected character '{char}' at state {state}")
-
             current_token += char
             state = new_state
 
         if state != 0 and current_token:
-            if state in self.accepting_states:
-                tokens.append((self.accepting_states[state], current_token))
-            else:
-                tokens.append(('ERROR', current_token))
+            if state == 1:
+                tokens.append(('TOKEN', current_token))
+            elif state == 2:
+                if current_token in self.tokens:
+                    tokens.append(('TOKEN', current_token))
+                else:
+                    tokens.append(('IDENTIFIER', current_token))
+            elif state == 3:
+                tokens.append(('NUMERICAL CONSTANT', current_token))
+            elif state == 4:
+                tokens.append(('INVALID NUMERIC STRING', current_token))
+            elif state == 50:
+                tokens.append(('UNEXPECTED CHARACTER', current_token))
 
         return tokens
 
@@ -112,7 +131,7 @@ class Lexer:
 
 
 # Alfabeto y tokens definidos
-alphabet = list('abcfinputuz0123456789.;*+<>&_={ñ()[]} ')
+alphabet = list('afinputz_0123456789.;*+<>&_={ñ()[]} ')
 tokens = ['int', 'input', 'if', '*', '+', '>', '&&', '(', ')', '{', '}', ';']
 
 # Crear una instancia del Lexer y analizar un archivo
