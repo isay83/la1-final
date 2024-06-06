@@ -7,7 +7,6 @@ class Lexer:
 
     def build_transition_table(self):
         transition_table = [[50] * len(self.alphabet) for _ in range(500)]
-
         # Definir transiciones específicas basadas en las reglas de tokens
         transition_table[0][self.alphabet.index('i')] = 10  # para "if", "int" o "input"
         transition_table[10][self.alphabet.index('n')] = 11  # para "int" o "input"
@@ -28,20 +27,37 @@ class Lexer:
         transition_table[0][self.alphabet.index(']')] = 1  # para "]"
         transition_table[0][self.alphabet.index(';')] = 1  # para ";"
         
+        for char in '0123456789.;*+<>&_={ñ()[]}':
+            transition_table[1][self.alphabet.index(char)] = 7
+        # para numerical constant
         for i in range(10):  # dígitos 0-9
             transition_table[0][self.alphabet.index(str(i))] = 3
             transition_table[3][self.alphabet.index(str(i))] = 3
         transition_table[3][self.alphabet.index('.')] = 4
         for i in range(10):
-            transition_table[4][self.alphabet.index(str(i))] = 3
-            transition_table[3][self.alphabet.index(str(i))] = 3
-        transition_table[3][self.alphabet.index('.')] = 4
-
+            transition_table[4][self.alphabet.index(str(i))] = 5
+            transition_table[5][self.alphabet.index(str(i))] = 5
+            transition_table[6][self.alphabet.index(str(i))] = 6
+            transition_table[7][self.alphabet.index(str(i))] = 7 # para invalid string
+        transition_table[5][self.alphabet.index('.')] = 6
+        transition_table[7][self.alphabet.index('.')] = 7 # para invalid string
+        # para identifier
         for letter in 'aifnputz_':
             transition_table[0][self.alphabet.index(letter)] = 2
             transition_table[2][self.alphabet.index(letter)] = 2
+            transition_table[3][self.alphabet.index(letter)] = 4 # para invalid numeric string
+            transition_table[4][self.alphabet.index(letter)] = 4 # para invalid numeric string
+            transition_table[5][self.alphabet.index(letter)] = 6 # para invalid numeric string
+            transition_table[6][self.alphabet.index(letter)] = 6 # para invalid numeric string
+            transition_table[7][self.alphabet.index(letter)] = 7 # para invalid string
             for digit in '0123456789':
                 transition_table[2][self.alphabet.index(digit)] = 2
+            for token in '*+>&(){];':
+                transition_table[2][self.alphabet.index(token)] = 7
+        # para invalid string
+        for letter in 'ñ':
+            transition_table[0][self.alphabet.index(letter)] = 7
+            transition_table[2][self.alphabet.index(letter)] = 7
 
         return transition_table
 
@@ -86,12 +102,14 @@ class Lexer:
                             tokens.append(('TOKEN', current_token))
                         else:
                             tokens.append(('IDENTIFIER', current_token))
-                    elif state == 3:
+                    elif state == 3 or state == 5:
                         tokens.append(('NUMERICAL CONSTANT', current_token))
-                    elif state == 4:
+                    elif state == 4 or state == 6:
                         tokens.append(('INVALID NUMERIC STRING', current_token))
+                    elif state == 7 or state == 14:
+                        tokens.append(('INVALID STRING', current_token))
                     elif state == 50:
-                        tokens.append(('UNEXPECTED CHARACTER', current_token))
+                        tokens.append(('UNEXPECTED TOKEN', current_token))
                     current_token = ''
                     state = 0
                 continue
@@ -110,12 +128,14 @@ class Lexer:
                     tokens.append(('TOKEN', current_token))
                 else:
                     tokens.append(('IDENTIFIER', current_token))
-            elif state == 3:
+            elif state == 3 or state == 5:
                 tokens.append(('NUMERICAL CONSTANT', current_token))
-            elif state == 4:
+            elif state == 4 or state == 6:
                 tokens.append(('INVALID NUMERIC STRING', current_token))
+            elif state == 7 or state == 14:
+                tokens.append(('INVALID STRING', current_token))
             elif state == 50:
-                tokens.append(('UNEXPECTED CHARACTER', current_token))
+                tokens.append(('UNEXPECTED TOKEN', current_token))
 
         return tokens
 
@@ -132,7 +152,7 @@ class Lexer:
 
 # Alfabeto y tokens definidos
 alphabet = list('afinputz_0123456789.;*+<>&_={ñ()[]} ')
-tokens = ['int', 'input', 'if', '*', '+', '>', '&&', '(', ')', '{', '}', ';']
+tokens = ['int', 'input', 'if', '*', '+', '>', '&&', '(', ')', '{', ']', ';']
 
 # Crear una instancia del Lexer y analizar un archivo
 lexer = Lexer(alphabet, tokens)
